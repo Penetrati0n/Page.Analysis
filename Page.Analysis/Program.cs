@@ -36,7 +36,7 @@ namespace Page.Analysis
             }
             Console.WriteLine("Good, valid URl!!!");
 
-            PageAnalysis.PrintStatisticInConsole(url);
+            PageAnalysis.PrintStatisticInConsole(url, true);
             
             static bool CheckUrl(ref string url)
         {

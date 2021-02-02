@@ -18,7 +18,7 @@ namespace Page.Analysis
         private static char[] Separators { get; } = { '\n', '\r', '\t', ' ', '~', '!', '@', '#', '$', '%', '^', '&', '*',
             '(', ')', '_', '+', '=', '-', '№', '[', ']', '{', '}', ';', ':', '\'', '"', '/', '?', '.', ',', '<', '>', '|', '\\' };
 
-        public static IEnumerable<KeyValuePair<string, int>> GetStatistic(string urlAdress)
+        public static IEnumerable<KeyValuePair<string, int>> GetStatistic(string urlAdress, bool dbWrite = false)
         {
             Dictionary<string, int> result = new Dictionary<string, int>(); 
             string fileName = "default.pa";
@@ -56,12 +56,18 @@ namespace Page.Analysis
 
             if (File.Exists(fileName)) File.Delete(fileName);
 
-            return result.OrderBy(o => o.Value);
+            var good = result.OrderBy(o => o.Value);
+            if(dbWrite)
+            {
+                WriteStutsInDB(good);
+            }
+
+            return good;
         }
-        public static string GetStringStatistic(string urlAdress)
+        public static string GetStringStatistic(string urlAdress, bool dbWrite = false)
         {
             StringBuilder report = new StringBuilder();
-            var stats = GetStatistic(urlAdress);
+            var stats = GetStatistic(urlAdress, dbWrite);
             
             foreach(var pair in stats)
             {
@@ -70,15 +76,16 @@ namespace Page.Analysis
 
             report.Remove(report.Length - 1, 1);
 
+
             return report.ToString();
         }
-        public static void PrintStatisticInConsole(string urlAdress)
+        public static void PrintStatisticInConsole(string urlAdress, bool dbWrite = false)
         {
             Console.WriteLine("————————————————————");
             Console.WriteLine($"{"Start", 13}");
             Console.WriteLine("————————————————————");
             Console.OutputEncoding = GetEncodingFromPage(urlAdress);
-            var stats = GetStatistic(urlAdress);
+            var stats = GetStatistic(urlAdress, dbWrite);
 
             foreach(var word in stats)
             {
@@ -111,6 +118,18 @@ namespace Page.Analysis
             return charSet == null ? Encoding.Default : Encoding.GetEncoding(charSet);
         }
 
+        private static void WriteStutsInDB(IEnumerable<KeyValuePair<string, int>> stuts)
+        {
+            using (WordStatContext db = new WordStatContext())
+            {
+                foreach(var word in stuts)
+                {
+                    db.Add(new WordStat() { Word = word.Key, Count = word.Value });
+                }
+
+                db.SaveChanges();
+            }
+        }
         private static void DownloadHtmlPage(string urlAdress, string fileName)
         {
             Encoding encoding = GetEncodingFromPage(urlAdress);
